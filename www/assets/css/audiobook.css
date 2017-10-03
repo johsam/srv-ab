@@ -1,0 +1,50 @@
+/*
+ *	Created by: Johan S - 2017
+ *
+ *	$Id:$
+ *
+ *	$URL:$
+ *
+ */
+
+body 	{
+	background-image: url(../images/bgpattern.gif);
+	}
+
+
+
+/*	Column hilite patterns for search results	*/
+
+.txt-inverted-text {
+	background-color : #CCC ! important;
+	color : #000 ! important;
+}
+
+
+
+
+.icon-grid-checked {
+	display:block;
+	margin:0 auto;
+	width: 16px;
+	height: 16px;
+	background-image:url(../images/icons/checked.png) !important;
+}
+
+
+.icon-grid-warning-red {
+	display:block;
+	margin:0 auto;
+	width: 16px;
+	height: 16px;
+	background-image:url(../images/icons/warning-red.png) !important;
+}
+
+.txt-warning-text {
+	color : #FF0000 !important;
+}
+
+.album-art-dim {
+	font : 14px tahoma, arial, helvetica, sans-serif !important;
+	font-weight : bold !important;
+}
