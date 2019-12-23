@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # coding: utf-8
 
 import os
@@ -7,21 +7,21 @@ import signal
 import re
 import datetime
 import time
-import json
+#import json
 import argparse
-import rarfile
 import ntpath
+import rarfile
 import rethinkdb as r
 from PIL import Image
 from mutagen.mp3 import MP3
 
 
-reload(sys)
-sys.setdefaultencoding('utf8')
+# reload(sys)
+# sys.setdefaultencoding('utf8')
 
 
 def log_message(message):
-    print "%s %s" % (time.strftime("%Y-%m-%d %X"), message)
+    print("{} {}".format(time.strftime("%Y-%m-%d %X"), message))
     sys.stdout.flush()
 
 
@@ -42,7 +42,6 @@ def extract_art(rar_path, art_name):
 
             rf.extract(f, path=extract_path)
             extracted_path = extract_path + f.filename.replace('\\', '/')
-
             os.rename(extracted_path, art_name)
             os.rmdir(os.path.dirname(extracted_path))
 
@@ -98,15 +97,14 @@ def parse_rar(path):
 
                     info['rar_mp3_length'] = info['rar_mp3_length'] + audio.info.length
                     if 'TCON' in audio.tags:
-                        genre.append(str(audio.tags['TCON']).encode('utf-8'))
+                        genre.append(str(audio.tags['TCON']))  # .encode('utf-8')
 
                     if 'TPE2' in audio.tags:
-                        artist.append(str(audio.tags['TPE2']).encode('utf-8'))
+                        artist.append(str(audio.tags['TPE2']))  # .encode('utf-8')
 
-                except:
+                except:  # pylint: disable=bare-except
                     log_message("Failed to parse: '" + f.filename + "'")
                     info['rar_errors'] = info['rar_errors'] + 1
-                    pass
 
                 # print f.filename.encode('utf-8'), audio.info.length
                 # os.remove(thefile)
@@ -135,15 +133,14 @@ def lookup_book(author, album, narrator):
         'mp3_narrator': narrator
     }).order_by(r.asc('_item')).limit(1).run()
 
-    if len(result) > 0:
+    if result:
         return True, result[0]
     else:
         return False, {}
 
 
 def update_book(data):
-
-    result = r.table(args.rethinktable).filter(~r.row.has_fields('_deleted')).filter({
+    _result = r.table(args.rethinktable).filter(~r.row.has_fields('_deleted')).filter({
         'mp3_author': data['mp3_author'],
         'mp3_album': data['mp3_album'],
         'mp3_narrator': data['mp3_narrator']
@@ -156,27 +153,27 @@ def update_book(data):
         # Will fail if table is empty
         maxdoc = r.table(args.rethinktable).pluck('_item').max().run()
         maxitem = maxdoc['_item'] + 1
-    except:
+    except:  # pylint: disable=bare-except
         pass
 
     data['_item'] = maxitem
     data['_lastmodified'] = int(time.time())
 
-    result = r.table(args.rethinktable).insert(data).run()
+    _result = r.table(args.rethinktable).insert(data).run()
 
 
-def parse_path(dir):
+def parse_path(the_path):
 
-    file_list = []
+    _file_list = []
     pattern = r'(.*?)\s-\s(.*?)\s(\d+)*\s+\((.*)\)'
 
-    for f in sorted(os.listdir(dir)):
+    for f in sorted(os.listdir(the_path)):
         # if len(file_list) >= 30:
         #    break
 
         # log_message("Processing: '" + f + "'")
 
-        fullpath = os.path.join(dir, f)
+        fullpath = os.path.join(the_path, f)
         st = os.stat(fullpath)
         ts = datetime.datetime.fromtimestamp(st.st_mtime).strftime('%Y-%m-%d %T')
         data = {'_active': True, 'file_name': f, 'file_size': st.st_size, 'file_timestamp': ts, 'file_timestamp_epoch': int(st.st_mtime)}
@@ -193,7 +190,7 @@ def parse_path(dir):
             if found is True:
                 if data['file_size'] == audiobook['file_size'] and data['file_timestamp_epoch'] == audiobook['file_timestamp_epoch']:
                     # log_message("Found '" + data['mp3_author'] + ':' + data['mp3_album'] + "'")
-                    if (audiobook['rar_albumart']):
+                    if audiobook['rar_albumart']:
 
                         art_name = build_art_name(audiobook)
                         if os.path.exists(art_name):
@@ -207,8 +204,9 @@ def parse_path(dir):
                     continue
 
             # Must be a new file, Read rar for info
-            # print json.dumps(data, indent=True, sort_keys=True)
-            # print json.dumps(audiobook, indent=True, sort_keys=True)
+            #import json
+            #print(json.dumps(data, indent=True, sort_keys=True))
+            #print(json.dumps(audiobook, indent=True, sort_keys=True))
             # sys.exit(0)
 
             try:
@@ -216,7 +214,7 @@ def parse_path(dir):
                 data.update(info)
                 log_message("Updating: '" + f + "'")
 
-                if (data['rar_albumart']):
+                if data['rar_albumart']:
                     art_name = build_art_name(data)
                     if not os.path.exists(art_name):
                         extract_art(fullpath, art_name)
@@ -225,18 +223,16 @@ def parse_path(dir):
 
                 update_book(data)
 
-            except Exception as e:
+            except Exception:
                 log_message("Failed to parse rar: '" + f + "'")
                 raise
 
         else:
             log_message("Failed to match: '" + f + "'")
 
-    return
 
-
-def handle_signal(signal, frame):
-    print "Signal..."
+def handle_signal(_sig, _frame):
+    print("Signal...")
     sys.exit(0)
 
 
@@ -245,11 +241,11 @@ def main():
     # Connect to rethinkdb
     try:
         r.connect(args.rethinkdbhost, 28015, args.rethinkdb).repl()
-    except Exception as e:
-        print e
+    except Exception as e:  # pylint: disable=broad-except
+        print(e)
         sys.exit(1)
 
-    signal.signal(signal.SIGINT,  handle_signal)
+    signal.signal(signal.SIGINT, handle_signal)
 
     parse_path(args.path)
 

@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import os
 import json
 import logging
@@ -10,7 +12,7 @@ import tornado.httpserver
 from tornado.options import define, options
 from tornado.escape import json_encode
 from tornado.ioloop import IOLoop
-from tornado.options import options
+from tornado.log import LogFormatter
 import rethinkdb as r
 
 
@@ -35,7 +37,7 @@ class Application(tornado.web.Application):
 def replyWithJsonP(handler, obj):
     callback = handler.get_argument('callback', default='')
     if callback != '':
-        jsonp = "{jsfunc}({json});".format(jsfunc=callback, json=json_encode(obj, sort_keys=True))
+        jsonp = "{jsfunc}({json});".format(jsfunc=callback, json=json.dumps(obj, sort_keys=True))
     else:
         jsonp = "{json}".format(json=json_encode(obj))
 
@@ -45,27 +47,31 @@ def replyWithJsonP(handler, obj):
 
 class ImagesHandler(tornado.web.RequestHandler):
 
+    def data_received(self, chunk):
+        pass
+
     @tornado.gen.coroutine
-    def get(self, image):
+    def get(self, image):  # pylint: disable=arguments-differ
+        #image = urllib.parse.unquote(image)
         path = os.path.abspath(os.path.join(os.path.dirname(__file__), 'albumart', image))
+
         try:
-            with open(path) as f:
+            with open(path, 'rb') as f:
                 self.write(f.read())
                 f.close()
-        except:
+        except:  # pylint: disable=bare-except
             self.clear()
             self.set_status(404)
-            pass
 
 
-def ValidBook(book):
+# def ValidBook(book):
 
-    if book['rar_other_files'] == 1:
-        return False
-    return True
+    # if book['rar_other_files'] == 1:
+    #    return False
+    # return True
 
-    if book['rar_albumart'] is False:
-        return False
+    # if book['rar_albumart'] is False:
+    #    return False
 
     # art = book['rar_albumart_size'].split('x')
     # aw = int(art[0])
@@ -74,22 +80,25 @@ def ValidBook(book):
     # if (aw > 500 or ah > 515):
     #    return False
 
-    if book['mp3_narrator'] != book['rar_mp3_artist']:
-        return False
+    # if book['mp3_narrator'] != book['rar_mp3_artist']:
+    #    return False
 
-    if book['rar_mp3_genre'] != 'Audiobook':
-        return False
+    # if book['rar_mp3_genre'] != 'Audiobook':
+    #    return False
 
-    if book['rar_other_files'] > 0:
-        return False
+    # if book['rar_other_files'] > 0:
+    #    return False
 
-    return True
+    # return True
 
 
 class LoadHandler(tornado.web.RequestHandler):
 
+    def data_received(self, chunk):
+        pass
+
     @tornado.gen.coroutine
-    def get(self, table):
+    def get(self, table):  # pylint: disable=arguments-differ
         try:
             conn = yield r.connect(options.rethinkdb_host, 28015, options.rethinkdb_db)
 
@@ -118,8 +127,11 @@ class LoadHandler(tornado.web.RequestHandler):
 
 class IndexHandler(tornado.web.RequestHandler):
 
+    def data_received(self, chunk):
+        pass
+
     @tornado.gen.coroutine
-    def get(self):
+    def get(self):  # pylint: disable=arguments-differ
         with open('index.html') as f:
             self.write(f.read())
         f.close()
@@ -143,7 +155,6 @@ def main():
     define("debug", default=False, help="debug", type=bool)
     define("rethinkdb_host", default="localhost", help="rethinkdb hostname", type=str)
     define("rethinkdb_db", default="", help="rethinkdb default database", type=str)
-    define("log_file_prefix", default="/var/log/audiobooks.log", help="log file prefix")
 
     tornado.options.parse_command_line()
 
@@ -156,16 +167,26 @@ def main():
     signal.signal(signal.SIGTERM, lambda sig, frame: ioloop.add_callback_from_signal(exit))
     atexit.register(shutdownHandler)
 
+    # Setup logging
+    my_log_format = '%(color)s%(asctime)s %(levelname)1.1s [%(module)s:%(lineno)d]%(end_color)s %(message)s'
+    my_log_formatter = LogFormatter(fmt=my_log_format, datefmt='%Y-%m-%d %H:%H:%S', color=False)
+
+    for handler in logging.getLogger().handlers:
+        handler.setFormatter(my_log_formatter)
+
     try:
-        conn = r.connect(options.rethinkdb_host, 28015, options.rethinkdb_db)
-    except:
+        _conn = r.connect(options.rethinkdb_host, 28015, options.rethinkdb_db)
+    except:  # pylint: disable=bare-except
         logging.error("Could not connect to rethinkdb on host '%s'", options.rethinkdb_host, exc_info=False)
         sys.exit(1)
 
     # Fire up our server
 
+    logging.info('Server started on %s:%d', options.listen, options.port)
+
     r.set_loop_type("tornado")
     ioloop.start()
+
 
 if __name__ == "__main__":
     ioloop = IOLoop.instance()

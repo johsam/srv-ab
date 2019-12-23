@@ -1,3 +1,4 @@
 www/albumart
 www/assets/ext4
 ab.log
+.mypy_cache/
