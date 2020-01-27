@@ -15,6 +15,8 @@ import rethinkdb as r
 from PIL import Image
 from mutagen.mp3 import MP3
 
+from bson import json_util
+from pymongo import MongoClient
 
 # reload(sys)
 # sys.setdefaultencoding('utf8')
@@ -134,9 +136,24 @@ def lookup_book(author, album, narrator):
     }).order_by(r.asc('_item')).limit(1).run()
 
     if result:
+        connection = client[args.mongodb_db][args.mongodb_collection]
+        mongo_book = connection\
+            .find_one({
+                '_deleted': {"$exists": False},
+                'mp3_author': author,
+                'mp3_album': album,
+                'mp3_narrator': narrator
+            })
+        # Make sure we have it in mongodb...
+        if not mongo_book:
+            mongo_book = result[0].copy()
+            mongo_book.pop('id', None)
+            #log_message("Mongodb insert '" + mongo_book['mp3_author'] + ':' + mongo_book['mp3_album'] + ":" + mongo_book['mp3_narrator'] + "'")
+            connection.insert(mongo_book)
+
         return True, result[0]
-    else:
-        return False, {}
+
+    return False, {}
 
 
 def update_book(data):
@@ -159,7 +176,23 @@ def update_book(data):
     data['_item'] = maxitem
     data['_lastmodified'] = int(time.time())
 
+    mongo_book = data.copy()
+    mongo_book.pop('id', None)
+
     _result = r.table(args.rethinktable).insert(data).run()
+
+    # Now for the mongo part...
+
+    connection = client[args.mongodb_db][args.mongodb_collection]
+    connection\
+        .delete_one({
+            'mp3_author': mongo_book['mp3_author'],
+            'mp3_album': mongo_book['mp3_album'],
+            'mp3_narrator': mongo_book['mp3_narrator']
+        })
+
+    log_message("Mongodb insert '" + mongo_book['mp3_author'] + ':' + mongo_book['mp3_album'] + ":" + mongo_book['mp3_narrator'] + "'")
+    connection.insert(mongo_book)
 
 
 def parse_path(the_path):
@@ -202,6 +235,7 @@ def parse_path(the_path):
                         update_book(audiobook)
 
                     continue
+
 
             # Must be a new file, Read rar for info
             #import json
@@ -264,7 +298,7 @@ parser.add_argument(
 
 parser.add_argument(
     '--rethink-db', required=True,
-    default="ripan",
+    default="test",
     dest='rethinkdb'
 )
 
@@ -273,6 +307,31 @@ parser.add_argument(
     default="test",
     dest='rethinktable'
 )
+
+parser.add_argument(
+    '--mongodb-host', required=True,
+    default="localhost",
+    dest='mongodb_host'
+)
+
+parser.add_argument(
+    '--mongodb-db', required=True,
+    default="test",
+    dest='mongodb_db'
+)
+
+parser.add_argument(
+    '--mongodb-auth', required=True,
+    default="test:test",
+    dest='mongodb_auth'
+)
+
+parser.add_argument(
+    '--mongodb-collection', required=True,
+    default="test",
+    dest='mongodb_collection'
+)
+
 
 parser.add_argument(
     '--path', required=True,
@@ -288,6 +347,7 @@ parser.add_argument(
 
 
 args = parser.parse_args()
+client = MongoClient('mongodb://{}@localhost:27017'.format(args.mongodb_auth), authSource=args.mongodb_db, serverSelectionTimeoutMS=5000)
 
 
 if __name__ == "__main__":
