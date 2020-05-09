@@ -33,24 +33,24 @@ Ext.define('Josa.ab.grid', {
     abHilitePattern: undefined, // Regexp for highliting search patter in grid
 
     /*******************************************************************
-    *
-    * Handler -> onTextFieldChange
-    *
-    ******************************************************************/
+     *
+     * Handler -> onTextFieldChange
+     *
+     ******************************************************************/
 
-    onTextFieldChange: function() {
-        var textField = this.down('textfield[name=searchField]');
+    onTextFieldChange: function () {
+        const textField = this.down('textfield[name=searchField]');
         this.delayUtil.delay(1000, this.delaytask, this, [{ store: this.getStore(), value: textField.getValue() }]);
     },
 
     /*******************************************************************
-    *
-    * Private delaytask
-    *
-    ******************************************************************/
+     *
+     * Private delaytask
+     *
+     ******************************************************************/
 
-    delaytask: function(cfg) {
-        var abFilter;
+    delaytask: function (cfg) {
+        let abFilter;
 
         if (cfg.value !== '') {
             this.abHilitePattern = new RegExp('(' + cfg.value + ')', 'gi');
@@ -62,14 +62,14 @@ Ext.define('Josa.ab.grid', {
 
             this.store.filter(
                 new Ext.util.Filter({
-                    filterFn: function(object) {
-                        var match = false;
-                        Ext.Object.each(object.data, function(property, value) {
+                    filterFn: function (object) {
+                        let match = false;
+                        Ext.Object.each(object.data, (_property, value) => {
                             match = match || abFilter.test(String(value));
                         });
                         return match;
                     },
-                }),
+                })
             );
         } else {
             this.abHilitePattern = undefined;
@@ -80,40 +80,38 @@ Ext.define('Josa.ab.grid', {
     delayUtil: new Ext.util.DelayedTask(),
 
     /*******************************************************************
-    *
-    * Private hiliteSearch
-    *
-    ******************************************************************/
+     *
+     * Private hiliteSearch
+     *
+     ******************************************************************/
 
-    hiliteSearch: function(dataIndex, value) {
-        var result = value.toString();
+    hiliteSearch: function (_dataIndex, value) {
+        let result = value.toString();
 
         if (this.abHilitePattern !== undefined) {
-            result = result.replace(this.abHilitePattern, function(str, g1) {
-                return '<span class="txt-inverted-text">' + g1 + '</span>';
-            });
+            result = result.replace(this.abHilitePattern, (_str, g1) => '<span class="txt-inverted-text">' + g1 + '</span>');
         }
 
         return result;
     },
 
     /*******************************************************************
-    *
-    * Private prettyBytes
-    *
-    ******************************************************************/
+     *
+     * Private prettyBytes
+     *
+     ******************************************************************/
 
-    prettyBytes: function(dataIndex, value) {
+    prettyBytes: function (_dataIndex, value) {
         return Josa.Utilities.prettyBytes(value, false, false);
     },
 
     /******************************************************************
-    *
-    *  initComponent
-    *
-    ******************************************************************/
+     *
+     *  initComponent
+     *
+     ******************************************************************/
 
-    initComponent: function() {
+    initComponent: function () {
         //  Add our top toolbar
 
         this.tbar = [
@@ -132,7 +130,7 @@ Ext.define('Josa.ab.grid', {
                 triggerBaseCls: 'x-form-trigger',
                 triggerCls: 'x-form-clear-trigger',
 
-                onTriggerClick: function() {
+                onTriggerClick: function () {
                     this.reset();
                 },
 
@@ -142,7 +140,7 @@ Ext.define('Josa.ab.grid', {
                         buffer: 100,
                     },
 
-                    specialkey: function(field, e) {
+                    specialkey: function (field, e) {
                         // e.HOME, e.END, e.PAGE_UP, e.PAGE_DOWN,
                         // e.TAB, e.ESC, arrow keys: e.LEFT, e.RIGHT, e.UP, e.DOWN
 
@@ -167,15 +165,15 @@ Ext.define('Josa.ab.grid', {
     },
 
     /*******************************************************************
-    *
-    *   Private buildColumns
-    *
-    ******************************************************************/
+     *
+     *   Private buildColumns
+     *
+     ******************************************************************/
 
     /* eslint no-unused-vars: ["error", { "argsIgnorePattern": "col|row|metadata|record|view|store" }] */
     /* eslint no-param-reassign: ["error", { "props": true, "ignorePropertyModificationsFor": ["m"] }]*/
 
-    buildColumns: function() {
+    buildColumns: function () {
         return {
             defaults: {
                 sortable: true,
@@ -195,7 +193,7 @@ Ext.define('Josa.ab.grid', {
                     hideable: false,
                     sortable: false,
                     groupable: false,
-                    getClass: function(value/*, metadata, record*/) {
+                    getClass: function (value /*, metadata, record*/) {
                         if (value === true) {
                             return 'icon-grid-checked';
                         }
@@ -212,14 +210,14 @@ Ext.define('Josa.ab.grid', {
                     sortable: false,
                     groupable: false,
 
-                    getClass: function(value, metadata, record) {
+                    getClass: function (value, _metadata, _record) {
                         if (value === null) {
                             return 'icon-grid-warning-red';
                         }
 
-                        var dim = value.split(' ');
-                        var width = parseInt(dim[0], 10);
-                        var height = parseInt(dim[2], 10);
+                        const dim = value.split(' ');
+                        const width = parseInt(dim[0], 10);
+                        const height = parseInt(dim[2], 10);
 
                         if (width < 300 || height < 300 || height > 550 || height > 550) {
                             return 'icon-grid-warning-red';
@@ -238,14 +236,14 @@ Ext.define('Josa.ab.grid', {
                     sortable: false,
                     groupable: false,
 
-                    getClass: function(value, metadata, record) {
+                    getClass: function (value, _metadata, _record) {
                         if (value === null) {
                             return 'icon-grid-warning-red';
                         }
 
-                        var dim = value.split(' ');
-                        var width = parseInt(dim[0], 10);
-                        var height = parseInt(dim[2], 10);
+                        const dim = value.split(' ');
+                        const width = parseInt(dim[0], 10);
+                        const height = parseInt(dim[2], 10);
 
                         if (Math.abs(width - height) > 10) {
                             return 'icon-grid-warning-red';
@@ -260,9 +258,9 @@ Ext.define('Josa.ab.grid', {
                     dataIndex: 'rar_other_files',
                     width: 32,
                     align: 'right',
-                    renderer: function(value, m, record, row, col, store, view) {
+                    renderer: function (value, m, record, _row, _col, _store, _view) {
                         if (value !== 0) {
-                            var qtip = record.get('rar_other_list').join('<br>');
+                            const qtip = record.get('rar_other_list').join('<br>');
 
                             m.tdCls = 'txt-warning-text';
                             m.tdAttr = "data-qtip='" + qtip + "'";
@@ -276,11 +274,12 @@ Ext.define('Josa.ab.grid', {
                     header: 'Author',
                     dataIndex: 'mp3_author',
                     flex: 1,
-                    renderer: function(value, m, record, row, col, store, view) {
-                        var art = record.get('rar_albumart_name');
+                    renderer: function (value, m, record, _row, col, _store, _view) {
+                        let art = record.get('rar_albumart_name');
 
                         if (!Ext.isEmpty(art)) {
                             art = art.replace("'", '&apos;');
+                            // eslint-disable-next-line operator-linebreak
                             m.tdAttr =
                                 "data-qtip='" +
                                 '<span class="album-art-dim">' +
@@ -301,8 +300,8 @@ Ext.define('Josa.ab.grid', {
                     header: 'Title',
                     dataIndex: 'mp3_album',
                     flex: 2,
-                    renderer: function(value, m, record, row, col, store, view) {
-                        var art = record.get('rar_albumart_name');
+                    renderer: function (value, m, record, _row, col, _store, _view) {
+                        let art = record.get('rar_albumart_name');
 
                         if (!Ext.isEmpty(art)) {
                             art = art.replace("'", '&apos;');
@@ -327,7 +326,7 @@ Ext.define('Josa.ab.grid', {
                     dataIndex: 'mp3_year',
                     align: 'right',
                     width: 60,
-                    renderer: function(value, m, record, row, col, store, view) {
+                    renderer: function (value, _m, _record, _row, col, _store, _view) {
                         return this.hiliteSearch(this.columns[col].dataIndex, value);
                     },
                 },
@@ -336,7 +335,7 @@ Ext.define('Josa.ab.grid', {
                     header: 'Narrator',
                     dataIndex: 'mp3_narrator',
                     flex: 1,
-                    renderer: function(value, m, record, row, col, store, view) {
+                    renderer: function (value, m, record, _row, col, _store, _view) {
                         if (record.get('rar_mp3_artist') !== record.get('mp3_narrator')) {
                             m.tdCls = 'txt-warning-text';
                         }
@@ -351,7 +350,7 @@ Ext.define('Josa.ab.grid', {
                     header: 'Artist (mp3)',
                     dataIndex: 'rar_mp3_artist',
                     flex: 1,
-                    renderer: function(value, m, record, row, col, store, view) {
+                    renderer: function (value, m, record, _row, col, _store, _view) {
                         if (record.get('rar_mp3_artist') !== record.get('mp3_narrator')) {
                             m.tdCls = 'txt-warning-text';
                         }
@@ -366,7 +365,7 @@ Ext.define('Josa.ab.grid', {
                     header: 'Genre (mp3)',
                     dataIndex: 'rar_mp3_genre',
                     width: 80,
-                    renderer: function(value, m, record, row, col, store, view) {
+                    renderer: function (value, m, _record, _row, col, _store, _view) {
                         if (value !== 'Audiobook') {
                             m.tdCls = 'txt-warning-text';
                         }
@@ -379,7 +378,7 @@ Ext.define('Josa.ab.grid', {
                     dataIndex: 'rar_mp3_duration',
                     width: 80,
                     align: 'right',
-                    renderer: function(value, m, record, row, col, store, view) {
+                    renderer: function (value, _m, _record, _row, col, _store, _view) {
                         return this.hiliteSearch(this.columns[col].dataIndex, value);
                     },
                 },
@@ -388,7 +387,7 @@ Ext.define('Josa.ab.grid', {
                     header: 'Timestamp',
                     dataIndex: 'file_timestamp',
                     width: 120,
-                    renderer: function(value, m, record, row, col, store, view) {
+                    renderer: function (value, _m, _record, _row, col, _store, _view) {
                         return this.hiliteSearch(this.columns[col].dataIndex, value);
                     },
                 },
@@ -398,7 +397,7 @@ Ext.define('Josa.ab.grid', {
                     dataIndex: 'file_size',
                     align: 'right',
                     width: 80,
-                    renderer: function(value, m, record, row, col, store, view) {
+                    renderer: function (value, m, _record, _row, col, _store, _view) {
                         m.tdAttr = "data-qtip='" + value + " Byte(s)'";
                         return this.prettyBytes(this.columns[col].dataIndex, value);
                     },
@@ -408,7 +407,7 @@ Ext.define('Josa.ab.grid', {
                     dataIndex: 'rar_albumart_size',
                     align: 'right',
                     width: 80,
-                    renderer: function(value, m, record, row, col, store, view) {
+                    renderer: function (value, _m, _record, _row, col, _store, _view) {
                         if (value == null) {
                             return 'n/a';
                         }

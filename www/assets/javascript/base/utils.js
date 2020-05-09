@@ -8,18 +8,18 @@
 Ext.define('Josa.Utilities', {
     statics: {
         /*******************************************************************
-        *
-        * Function -> prettyBytes
-        *
-        ******************************************************************/
+         *
+         * Function -> prettyBytes
+         *
+         ******************************************************************/
 
-        bytes: function(v) {
+        bytes: function (v) {
             /*eslint no-bitwise: "off"*/
             const e = (Math.log(v) / Math.log(1024)) | 0;
             return +(v / 1024 ** e).toFixed(1) + ' ' + ('kMGTPEZY'[e - 1] || '') + 'B';
         },
 
-        prettyBytes: function(size, nospace, one) {
+        prettyBytes: function (size, nospace, one) {
             const sizes = ['Bytes', 'kB', 'MB', 'GB', 'TB', 'PB', 'EB'];
 
             let mysize;
@@ -27,7 +27,7 @@ Ext.define('Josa.Utilities', {
             let s;
             let fxd;
 
-            sizes.forEach(function(f, id) {
+            sizes.forEach((f, id) => {
                 if (one) {
                     g = f.slice(0, 1);
                 }

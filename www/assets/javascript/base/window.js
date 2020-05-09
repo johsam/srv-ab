@@ -28,12 +28,12 @@ Ext.define('Josa.base.window', {
     closeAction: 'hide',
 
     /*******************************************************************
-    *
-    *  initComponent
-    *
-    ******************************************************************/
+     *
+     *  initComponent
+     *
+     ******************************************************************/
 
-    initComponent: function() {
+    initComponent: function () {
         this.callParent(arguments);
         //console.log('Shb.base.window->initComponent->',this.title);
     },

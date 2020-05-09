@@ -56,20 +56,20 @@ Ext.define('Josa.ab.store', {
     groupField: 'mp3_author',
 
     /*******************************************************************
-    *
-    * Event -> onbeforeLoad
-    *
-    ******************************************************************/
+     *
+     * Event -> onbeforeLoad
+     *
+     ******************************************************************/
 
-    onbeforeLoad: function() {},
+    onbeforeLoad: function () {},
 
     /******************************************************************
-    *
-    * constructor
-    *
-    ******************************************************************/
+     *
+     * constructor
+     *
+     ******************************************************************/
 
-    constructor: function() {
+    constructor: function () {
         this.callParent(arguments);
         this.on('beforeLoad', this.onbeforeLoad, this);
     },

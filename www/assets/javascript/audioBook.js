@@ -4,18 +4,17 @@
  *
  */
 
-/* jshint trailing: true ,  sub:true */
 /* global abConfig:true */
 
 // @flow
 
-Ext.onReady(function() {
+Ext.onReady(function () {
     delete Ext.tip.Tip.prototype.minWidth;
 
     Ext.override(Ext.tip.Tip, {
         componentLayout: {
             type: 'fieldset',
-            getDockedItems: function() {
+            getDockedItems: function () {
                 return [];
             },
         },
@@ -28,22 +27,14 @@ Ext.onReady(function() {
         // minWidth: 500
     });
 
-    var abWindow;
-
-    /*eslint no-unused-vars: ["error", {"args": "none"}]*/
-    function abGridStoreLoad(store, records, success) {
-        abWindow.setTitle(store.getTotalCount() + ' audio book(s) loaded');
-        abWindow.down('textfield[name=searchField]').focus(true, true);
-    }
-
     // Start create stuff
 
-    var josaDocHeight = Ext.getBody().getViewSize().height;
-    var josaDocWidth = Ext.getBody().getViewSize().width;
+    const josaDocHeight = Ext.getBody().getViewSize().height;
+    const josaDocWidth = Ext.getBody().getViewSize().width;
 
-    var abGrid = Ext.create('Josa.ab.grid', {});
+    const abGrid = Ext.create('Josa.ab.grid', {});
 
-    abWindow = Ext.create('josa.base.window', {
+    const abWindow = Ext.create('josa.base.window', {
         title: 'Please wait...',
         x: abConfig.settings.winMargin,
         y: abConfig.settings.winMargin,
@@ -55,23 +46,28 @@ Ext.onReady(function() {
         buttons: [
             {
                 text: 'Reload',
-                handler: function() {
+                handler: function () {
                     abGrid.getStore().load();
                 },
             },
         ],
 
         /*******************************************************************
-        *
-        *  onShowEvent
-        *
-        ******************************************************************/
+         *
+         *  onShowEvent
+         *
+         ******************************************************************/
 
-        onShowEvent: function(c, o) {
-            var store = abGrid.getStore();
+        onShowEvent: function (_c, _o) {
+            const store = abGrid.getStore();
             store.load();
         },
     });
+
+    const abGridStoreLoad = (store, _records, _success) => {
+        abWindow.setTitle(store.getTotalCount() + ' audio book(s) loaded');
+        abWindow.down('textfield[name=searchField]').focus(true, true);
+    };
 
     abWindow.on('show', abWindow.onShowEvent, this);
     abGrid.getStore().on('load', abGridStoreLoad, this);
