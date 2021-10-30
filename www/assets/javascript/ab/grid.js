@@ -297,7 +297,7 @@ Ext.define('Josa.ab.grid', {
                 },
 
                 {
-                    header: 'Title',
+                    header: 'Album',
                     dataIndex: 'mp3_album',
                     flex: 2,
                     renderer: function (value, m, record, _row, col, _store, _view) {
@@ -320,7 +320,11 @@ Ext.define('Josa.ab.grid', {
                         return this.hiliteSearch(this.columns[col].dataIndex, value);
                     },
                 },
-
+                {
+                    header: 'Album (mp3)',
+                    dataIndex: 'rar_mp3_album',
+                    flex: 2,
+                },
                 {
                     header: 'Year',
                     dataIndex: 'mp3_year',

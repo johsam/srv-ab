@@ -58,6 +58,7 @@ def parse_rar(path):
             'rar_mp3_files': 0,
             'rar_mp3_length': 0,
             'rar_mp3_duration': '',
+            'rar_mp3_album': '',
             'rar_mp3_genre': '',
             'rar_mp3_artist': '',
             'rar_other_files': 0,
@@ -67,6 +68,7 @@ def parse_rar(path):
             }
     genre = []
     artist = []
+    album = []
 
     rf = rarfile.RarFile(path)
 
@@ -103,6 +105,9 @@ def parse_rar(path):
 
                     if 'TPE2' in audio.tags:
                         artist.append(str(audio.tags['TPE2']))  # .encode('utf-8')
+                    
+                    if 'TALB' in audio.tags:
+                        album.append(str(audio.tags['TALB']))  # .encode('utf-8')
 
                 except:  # pylint: disable=bare-except
                     log_message("Failed to parse: '" + f.filename + "'")
@@ -120,7 +125,9 @@ def parse_rar(path):
 
     genre = sorted(set(genre))
     artist = sorted(set(artist))
+    album = sorted(set(album))
 
+    info['rar_mp3_album'] = ",".join(album)
     info['rar_mp3_genre'] = ",".join(genre)
     info['rar_mp3_artist'] = ",".join(artist)
     info['rar_mp3_duration'] = str(datetime.timedelta(seconds=int(info['rar_mp3_length'])))

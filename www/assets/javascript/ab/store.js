@@ -20,6 +20,7 @@ Ext.define('Josa.ab.storemodel', {
         'rar_albumart_name',
         'rar_albumart',
         { name: 'rar_mp3_files', type: 'int' },
+        'rar_mp3_album',
         'rar_albumart',
         'rar_albumart_size',
         'rar_mp3_duration',
