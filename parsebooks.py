@@ -22,9 +22,13 @@ from pymongo import MongoClient
 # sys.setdefaultencoding('utf8')
 
 
-def log_message(message):
-    print("{} {}".format(time.strftime("%Y-%m-%d %X"), message))
+def log_message(message, end='\n'):
+    print("{} {}".format(time.strftime("%Y-%m-%d %X"), message), end=end)
     sys.stdout.flush()
+
+
+def mongo_log(author, album, narrator):
+    log_message(f"Mongodb:   [insert]: '{author}:{album},{narrator}'")
 
 
 def build_art_name(ab):
@@ -46,7 +50,7 @@ def extract_art(rar_path, art_name):
             extracted_path = extract_path + f.filename.replace('\\', '/')
             os.rename(extracted_path, art_name)
             os.rmdir(os.path.dirname(extracted_path))
-
+            print()
             log_message("Extracted '" + art_name + "'")
 
 
@@ -69,10 +73,12 @@ def parse_rar(path):
     genre = []
     artist = []
     album = []
+    
+    print()
+    log_message("Parsing '" + path + "'")
 
     rf = rarfile.RarFile(path)
 
-    log_message("Parsing '" + path + "'")
 
     for f in rf.infolist():
         if f.isdir():
@@ -105,7 +111,7 @@ def parse_rar(path):
 
                     if 'TPE2' in audio.tags:
                         artist.append(str(audio.tags['TPE2']))  # .encode('utf-8')
-                    
+
                     if 'TALB' in audio.tags:
                         album.append(str(audio.tags['TALB']))  # .encode('utf-8')
 
@@ -154,8 +160,9 @@ def lookup_book(author, album, narrator):
         # Make sure we have it in mongodb...
         if not mongo_book:
             mongo_book = result[0].copy()
-            mongo_book.pop('id', None)
-            #log_message("Mongodb insert '" + mongo_book['mp3_author'] + ':' + mongo_book['mp3_album'] + ":" + mongo_book['mp3_narrator'] + "'")
+            mongo_book['_rethinkdb_id'] = mongo_book.pop('id', None)
+            print()
+            mongo_log(mongo_book['mp3_author'], mongo_book['mp3_album'], mongo_book['mp3_narrator'])
             connection.insert(mongo_book)
 
         return True, result[0]
@@ -184,7 +191,7 @@ def update_book(data):
     data['_lastmodified'] = int(time.time())
 
     mongo_book = data.copy()
-    mongo_book.pop('id', None)
+    mongo_book['_rethinkdb_id'] = mongo_book.pop('id', None)
 
     _result = r.table(args.rethinktable).insert(data).run()
 
@@ -198,25 +205,28 @@ def update_book(data):
             'mp3_narrator': mongo_book['mp3_narrator']
         })
 
-    log_message("Mongodb insert '" + mongo_book['mp3_author'] + ':' + mongo_book['mp3_album'] + ":" + mongo_book['mp3_narrator'] + "'")
+    mongo_log(mongo_book['mp3_author'], mongo_book['mp3_album'], mongo_book['mp3_narrator'])
     connection.insert(mongo_book)
 
 
 def parse_path(the_path):
-
-    _file_list = []
+    counter = 0
     pattern = r'(.*?)\s-\s(.*?)\s(\d+)*\s+\((.*)\)'
 
     for f in sorted(os.listdir(the_path)):
-        # if len(file_list) >= 30:
-        #    break
 
-        # log_message("Processing: '" + f + "'")
+        counter += 1
+
+        log_message("\rProcessing: {:04d}'".format(counter) + f + "'\x1b[0K", end='')
+
+        if counter % 50 == 0:
+            print()
 
         fullpath = os.path.join(the_path, f)
         st = os.stat(fullpath)
         ts = datetime.datetime.fromtimestamp(st.st_mtime).strftime('%Y-%m-%d %T')
-        data = {'_active': True, 'file_name': f, 'file_size': st.st_size, 'file_timestamp': ts, 'file_timestamp_epoch': int(st.st_mtime)}
+        data = {'_active': True, 'file_name': f, 'file_size': st.st_size,
+                'file_timestamp': ts, 'file_timestamp_epoch': int(st.st_mtime)}
 
         mo = re.match(pattern, f, re.M | re.I)
         if mo:
@@ -243,7 +253,6 @@ def parse_path(the_path):
 
                     continue
 
-
             # Must be a new file, Read rar for info
             #import json
             #print(json.dumps(data, indent=True, sort_keys=True))
@@ -253,7 +262,7 @@ def parse_path(the_path):
             try:
                 info = parse_rar(fullpath)
                 data.update(info)
-                log_message("Updating: '" + f + "'")
+                log_message("Rethinkdb: [update]: '" + f + "'")
 
                 if data['rar_albumart']:
                     art_name = build_art_name(data)
@@ -270,6 +279,8 @@ def parse_path(the_path):
 
         else:
             log_message("Failed to match: '" + f + "'")
+    
+    log_message("\rProcessing: {:04d}'".format(counter) + f + "'\x1b[0K", end='')
 
 
 def handle_signal(_sig, _frame):
@@ -289,11 +300,12 @@ def main():
     signal.signal(signal.SIGINT, handle_signal)
 
     parse_path(args.path)
-
+    print()
 
 #
 # Parse arguments
 #
+
 
 parser = argparse.ArgumentParser(description='Audiobook parser')
 
@@ -354,7 +366,8 @@ parser.add_argument(
 
 
 args = parser.parse_args()
-client = MongoClient('mongodb://{}@localhost:27017'.format(args.mongodb_auth), authSource=args.mongodb_db, serverSelectionTimeoutMS=5000)
+client = MongoClient('mongodb://{}@localhost:27017'.format(args.mongodb_auth),
+                     authSource=args.mongodb_db, serverSelectionTimeoutMS=5000)
 
 
 if __name__ == "__main__":
