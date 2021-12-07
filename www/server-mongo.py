@@ -100,9 +100,18 @@ class LoadHandler(tornado.web.RequestHandler):
 
     def data_received(self, chunk):
         pass
+    
+    def options(self, *args, **kwargs):
+        self.set_header('Access-Control-Allow-Origin', '*')
+        self.set_header('Access-Control-Allow-Headers', '*')
+
+        self.set_status(204)
+        self.finish()
 
     @tornado.gen.coroutine
     def get(self, table):  # pylint: disable=arguments-differ
+        self.set_header('Access-Control-Allow-Origin', '*')
+        self.set_header('Access-Control-Allow-Headers', '*')
 
         try:
             db = self.settings['db']
