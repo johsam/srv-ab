@@ -11,7 +11,7 @@ import time
 import argparse
 import ntpath
 import rarfile
-import rethinkdb as r
+from rethinkdb import r
 from PIL import Image
 from mutagen.mp3 import MP3
 

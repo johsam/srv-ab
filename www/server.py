@@ -13,8 +13,7 @@ from tornado.options import define, options
 from tornado.escape import json_encode
 from tornado.ioloop import IOLoop
 from tornado.log import LogFormatter
-import rethinkdb as r
-
+from rethinkdb import r
 
 class Application(tornado.web.Application):
 
@@ -176,8 +175,8 @@ def main():
 
     try:
         _conn = r.connect(options.rethinkdb_host, 28015, options.rethinkdb_db)
-    except:  # pylint: disable=bare-except
-        logging.error("Could not connect to rethinkdb on host '%s'", options.rethinkdb_host, exc_info=False)
+    except Exception as e:  # pylint: disable=bare-except
+        logging.error("Could not connect to rethinkdb on host '%s' '%s'", options.rethinkdb_host, str(e),exc_info=False)
         sys.exit(1)
 
     # Fire up our server
