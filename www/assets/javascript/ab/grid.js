@@ -219,7 +219,7 @@ Ext.define('Josa.ab.grid', {
                         const width = parseInt(dim[0], 10);
                         const height = parseInt(dim[2], 10);
 
-                        if (width < 300 || height < 300 || height > 550 || height > 550) {
+                        if (width < 300 || height < 300 || height > 600 || height > 600) {
                             return 'icon-grid-warning-red';
                         }
 
