@@ -7,19 +7,16 @@ import signal
 import re
 import datetime
 import time
-#import json
 import argparse
 import ntpath
+import io
 import rarfile
 from rethinkdb import r
 from PIL import Image
 from mutagen.mp3 import MP3
 
-from bson import json_util
+# from bson import json_util
 from pymongo import MongoClient
-
-# reload(sys)
-# sys.setdefaultencoding('utf8')
 
 
 def log_message(message, end='\n'):
@@ -73,12 +70,11 @@ def parse_rar(path):
     genre = []
     artist = []
     album = []
-    
+
     print()
     log_message("Parsing '" + path + "'")
 
     rf = rarfile.RarFile(path)
-
 
     for f in rf.infolist():
         if f.isdir():
@@ -97,27 +93,29 @@ def parse_rar(path):
             if f.filename.endswith('.mp3'):
                 info['rar_mp3_files'] = info['rar_mp3_files'] + 1
 
-                # rf.extract(f, path=extract_path)
-                # thefile = extract_path + f.filename.replace('\\', '/')
-
                 try:
 
                     with rf.open(f.filename) as au:
-                        audio = MP3(fileobj=au)
+                        file_buffer = io.BytesIO(au.read())
+                        audio = MP3(file_buffer)
 
                     info['rar_mp3_length'] = info['rar_mp3_length'] + audio.info.length
                     if 'TCON' in audio.tags:
-                        genre.append(str(audio.tags['TCON']))  # .encode('utf-8')
+                        # .encode('utf-8')
+                        genre.append(str(audio.tags['TCON']))
 
                     if 'TPE2' in audio.tags:
-                        artist.append(str(audio.tags['TPE2']))  # .encode('utf-8')
+                        # .encode('utf-8')
+                        artist.append(str(audio.tags['TPE2']))
 
                     if 'TALB' in audio.tags:
-                        album.append(str(audio.tags['TALB']))  # .encode('utf-8')
+                        # .encode('utf-8')
+                        album.append(str(audio.tags['TALB']))
 
                 except:  # pylint: disable=bare-except
                     log_message("Failed to parse: '" + f.filename + "'")
                     info['rar_errors'] = info['rar_errors'] + 1
+                    raise
 
                 # print f.filename.encode('utf-8'), audio.info.length
                 # os.remove(thefile)
@@ -149,21 +147,21 @@ def lookup_book(author, album, narrator):
     }).order_by(r.asc('_item')).limit(1).run()
 
     if result:
-        connection = client[args.mongodb_db][args.mongodb_collection]
-        mongo_book = connection\
-            .find_one({
-                '_deleted': {"$exists": False},
-                'mp3_author': author,
-                'mp3_album': album,
-                'mp3_narrator': narrator
-            })
-        # Make sure we have it in mongodb...
-        if not mongo_book:
-            mongo_book = result[0].copy()
-            mongo_book['_rethinkdb_id'] = mongo_book.pop('id', None)
-            print()
-            mongo_log(mongo_book['mp3_author'], mongo_book['mp3_album'], mongo_book['mp3_narrator'])
-            connection.insert(mongo_book)
+        if mongo_client:
+            connection = mongo_client[args.mongodb_db][args.mongodb_collection]
+            mongo_book = connection\
+                .find_one({
+                    '_deleted': {"$exists": False},
+                    'mp3_author': author,
+                    'mp3_album': album,
+                    'mp3_narrator': narrator
+                })
+            # Make sure we have it in mongodb...
+            if not mongo_book:
+                mongo_book = result[0].copy()
+                mongo_book['_rethinkdb_id'] = mongo_book.pop('id', None)
+                mongo_log(mongo_book['mp3_author'], mongo_book['mp3_album'], mongo_book['mp3_narrator'])
+                connection.insert_one(mongo_book)
 
         return True, result[0]
 
@@ -190,23 +188,25 @@ def update_book(data):
     data['_item'] = maxitem
     data['_lastmodified'] = int(time.time())
 
-    mongo_book = data.copy()
-    mongo_book['_rethinkdb_id'] = mongo_book.pop('id', None)
 
     _result = r.table(args.rethinktable).insert(data).run()
 
     # Now for the mongo part...
 
-    connection = client[args.mongodb_db][args.mongodb_collection]
-    connection\
-        .delete_one({
-            'mp3_author': mongo_book['mp3_author'],
-            'mp3_album': mongo_book['mp3_album'],
-            'mp3_narrator': mongo_book['mp3_narrator']
-        })
+    if mongo_client:
+        mongo_book = data.copy()
+        mongo_book['_rethinkdb_id'] = mongo_book.pop('id', None)
 
-    mongo_log(mongo_book['mp3_author'], mongo_book['mp3_album'], mongo_book['mp3_narrator'])
-    connection.insert(mongo_book)
+        connection = mongo_client[args.mongodb_db][args.mongodb_collection]
+        connection\
+            .delete_one({
+                'mp3_author': mongo_book['mp3_author'],
+                'mp3_album': mongo_book['mp3_album'],
+                'mp3_narrator': mongo_book['mp3_narrator']
+            })
+
+        mongo_log(mongo_book['mp3_author'], mongo_book['mp3_album'], mongo_book['mp3_narrator'])
+        connection.insert_one(mongo_book)
 
 
 def parse_path(the_path):
@@ -217,14 +217,16 @@ def parse_path(the_path):
 
         counter += 1
 
-        log_message("\rProcessing: {:04d}'".format(counter) + f + "'\x1b[0K", end='')
+        log_message("\rProcessing: {:04d}'".format(
+            counter) + f + "'\x1b[0K", end='')
 
         if counter % 50 == 0:
             print()
 
         fullpath = os.path.join(the_path, f)
         st = os.stat(fullpath)
-        ts = datetime.datetime.fromtimestamp(st.st_mtime).strftime('%Y-%m-%d %T')
+        ts = datetime.datetime.fromtimestamp(
+            st.st_mtime).strftime('%Y-%m-%d %T')
         data = {'_active': True, 'file_name': f, 'file_size': st.st_size,
                 'file_timestamp': ts, 'file_timestamp_epoch': int(st.st_mtime)}
 
@@ -235,7 +237,8 @@ def parse_path(the_path):
             data['mp3_year'] = mo.group(3)
             data['mp3_narrator'] = mo.group(4)
 
-            (found, audiobook) = lookup_book(data['mp3_author'], data['mp3_album'], data['mp3_narrator'])
+            (found, audiobook) = lookup_book(
+                data['mp3_author'], data['mp3_album'], data['mp3_narrator'])
 
             if found is True:
                 if data['file_size'] == audiobook['file_size'] and data['file_timestamp_epoch'] == audiobook['file_timestamp_epoch']:
@@ -247,16 +250,17 @@ def parse_path(the_path):
                             continue
 
                         extract_art(fullpath, art_name)
-                        audiobook.update({'rar_albumart_name': os.path.basename(art_name)})
+                        audiobook.update(
+                            {'rar_albumart_name': os.path.basename(art_name)})
 
                         update_book(audiobook)
 
                     continue
 
             # Must be a new file, Read rar for info
-            #import json
-            #print(json.dumps(data, indent=True, sort_keys=True))
-            #print(json.dumps(audiobook, indent=True, sort_keys=True))
+            # import json
+            # print(json.dumps(data, indent=True, sort_keys=True))
+            # print(json.dumps(audiobook, indent=True, sort_keys=True))
             # sys.exit(0)
 
             try:
@@ -269,7 +273,8 @@ def parse_path(the_path):
                     if not os.path.exists(art_name):
                         extract_art(fullpath, art_name)
 
-                    data.update({'rar_albumart_name': os.path.basename(art_name)})
+                    data.update(
+                        {'rar_albumart_name': os.path.basename(art_name)})
 
                 update_book(data)
 
@@ -279,8 +284,9 @@ def parse_path(the_path):
 
         else:
             log_message("Failed to match: '" + f + "'")
-    
-    log_message("\rProcessing: {:04d}'".format(counter) + f + "'\x1b[0K", end='')
+
+    log_message("\rProcessing: {:04d}'".format(
+        counter) + f + "'\x1b[0K", end='')
 
 
 def handle_signal(_sig, _frame):
@@ -360,15 +366,15 @@ parser.add_argument(
 
 parser.add_argument(
     '--image-path', required=False,
-    default=os.path.abspath(os.path.join(os.path.dirname(__file__), 'www/albumart/')),
+    default=os.path.abspath(os.path.join(
+        os.path.dirname(__file__), 'www/albumart/')),
     dest='imagepath'
 )
 
 
 args = parser.parse_args()
-client = MongoClient('mongodb://{}@localhost:27017'.format(args.mongodb_auth),
-                     authSource=args.mongodb_db, serverSelectionTimeoutMS=5000)
-
+#mongo_client = MongoClient('mongodb://{}@{}:27017'.format(args.mongodb_auth,args.mongodb_host), authSource=args.mongodb_db, serverSelectionTimeoutMS=5000)
+mongo_client = None;
 
 if __name__ == "__main__":
     main()
